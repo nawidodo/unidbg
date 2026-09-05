@@ -70,6 +70,7 @@ public class McpServer {
         httpServer.setExecutor(executor);
         httpServer.createContext("/sse", this::handleSse);
         httpServer.createContext("/message", this::handleMessage);
+        httpServer.createContext("/", this::handleSse);
         httpServer.start();
     }
 

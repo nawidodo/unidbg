@@ -88,13 +88,14 @@ The MCP client config only needs the URL; the IPA location stays on the server c
 {
   "mcpServers": {
     "unidbg-ios": {
-      "url": "http://localhost:9239/sse"
+      "type": "http",
+      "url": "http://localhost:9239"
     }
   }
 }
 ```
 
-Pass `--transport stdio` through the wrapper only when the MCP client spawns the process itself. Extra options (`--backend`, `--rootfs`, `--run-entry`, `--break-offset`, `--mcp-port`) pass through unchanged.
+Pass `--transport stdio` through the wrapper only when the MCP client spawns the process itself. Extra options (`--backend`, `--rootfs`, `--run-entry`, `--break-offset`, `--mcp-port`) pass through unchanged. Initializer functions are skipped by default so the server becomes available without executing app startup code; use `--call-init` when that behavior is required.
 
 Build the shaded launcher once:
 
@@ -105,7 +106,7 @@ Build the shaded launcher once:
 Invoke the same jar for any arm64 IPA; the IPA path is runtime input, so changing targets does not require recompilation:
 
 ```bash
-java -jar unidbg-ios-headless/target/unidbg-ios-headless-0.9.10-SNAPSHOT.jar \
+java -jar unidbg-ios-headless/target/unidbg-ios-headless-0.9.10-SNAPSHOT-all.jar \
   /path/to/app.ipa
 ```
 
@@ -118,7 +119,7 @@ stdio MCP is the default transport and is suitable for MCP clients that spawn th
       "command": "java",
       "args": [
         "-jar",
-        "/absolute/path/to/unidbg-ios-headless-0.9.10-SNAPSHOT.jar",
+        "/absolute/path/to/unidbg-ios-headless-0.9.10-SNAPSHOT-all.jar",
         "/absolute/path/to/app.ipa"
       ]
     }
@@ -126,16 +127,16 @@ stdio MCP is the default transport and is suitable for MCP clients that spawn th
 }
 ```
 
-The launcher loads the IPA and waits with the emulator available for inspection. Call the generic `runEntry` tool when the application entry point should execute. Use `--run-entry` to run it during startup, `--backend` to select a backend, or `--rootfs` to choose the root filesystem directory.
+The launcher loads the IPA and waits with the emulator available for inspection. Initializer functions are skipped by default; use `--call-init` to run them during load. Call the generic `runEntry` tool when the application entry point should execute. Use `--run-entry` to run it during startup, `--backend` to select a backend, or `--rootfs` to choose the root filesystem directory.
 
 HTTP transport remains available when a URL endpoint is required:
 
 ```bash
-java -jar unidbg-ios-headless/target/unidbg-ios-headless-0.9.10-SNAPSHOT.jar \
+java -jar unidbg-ios-headless/target/unidbg-ios-headless-0.9.10-SNAPSHOT-all.jar \
   --transport http --mcp-port 9239 /path/to/app.ipa
 ```
 
-Connect the HTTP server at `http://localhost:9239/sse`.
+Connect the HTTP server at `http://localhost:9239`.
 
 ### Available MCP Tools
 

@@ -211,7 +211,7 @@ public final class IpaMcpHeadless implements EmulatorConfigurator {
 
     private static void printUsage() {
         System.out.println(
-                "Usage: java -jar unidbg-ios-headless-*.jar [options] <ipa>\n" +
+                "Usage: java -jar unidbg-ios-headless-*-all.jar [options] <ipa>\n" +
                 "\n" +
                 "Load an arm64 IPA once, then expose the emulator through MCP.\n" +
                 "The IPA path is runtime input; invoke this same jar for every IPA.\n" +
@@ -226,7 +226,7 @@ public final class IpaMcpHeadless implements EmulatorConfigurator {
                 "  --no-mcp               Load and exit instead of starting MCP\n" +
                 "  --run-entry            Run the IPA entry point on startup\n" +
                 "  --break-offset VALUE   Add a breakpoint at Mach-O header + image offset\n" +
-                "  --no-call-init         Skip Mach-O initializer functions\n" +
+                "  --call-init            Run Mach-O initializer functions during load\n" +
                 "  -h, --help             Show this help\n"
         );
     }
@@ -238,7 +238,7 @@ public final class IpaMcpHeadless implements EmulatorConfigurator {
         private Integer mcpPort = Integer.valueOf(9239);
         private Long breakOffset;
         private boolean runEntry;
-        private boolean callInit = true;
+        private boolean callInit;
         private boolean help;
         private String transport = "stdio";
 
@@ -260,6 +260,10 @@ public final class IpaMcpHeadless implements EmulatorConfigurator {
                 }
                 if ("--run-entry".equals(arg)) {
                     options.runEntry = true;
+                    continue;
+                }
+                if ("--call-init".equals(arg)) {
+                    options.callInit = true;
                     continue;
                 }
                 if ("--no-call-init".equals(arg)) {

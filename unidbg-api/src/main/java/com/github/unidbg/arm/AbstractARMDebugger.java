@@ -1433,8 +1433,8 @@ public abstract class AbstractARMDebugger implements Debugger {
         System.out.println("{");
         System.out.println("  \"mcpServers\": {");
         System.out.println("    \"" + serverName + "\": {");
-        System.out.println("      \"type\": \"sse\",");
-        System.out.println("      \"url\": \"http://localhost:" + port + "/sse\"");
+        System.out.println("      \"type\": \"http\",");
+        System.out.println("      \"url\": \"http://localhost:" + port + "\"");
         System.out.println("    }");
         System.out.println("  }");
         System.out.println("}");
