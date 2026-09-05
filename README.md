@@ -66,6 +66,49 @@ When the debugger breaks, type `mcp` (or `mcp 9239` to specify port) in the cons
 }
 ```
 
+### Headless iOS IPA launcher
+
+Build the shaded launcher once:
+
+```bash
+./mvnw -pl unidbg-ios-headless -am package -DskipTests
+```
+
+Invoke the same jar for any arm64 IPA; the IPA path is runtime input, so changing targets does not require recompilation:
+
+```bash
+java -jar unidbg-ios-headless/target/unidbg-ios-headless-0.9.10-SNAPSHOT.jar \
+  /path/to/app.ipa
+```
+
+stdio MCP is the default transport and is suitable for MCP clients that spawn the process:
+
+```json
+{
+  "mcpServers": {
+    "unidbg-ios": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "/absolute/path/to/unidbg-ios-headless-0.9.10-SNAPSHOT.jar",
+        "/absolute/path/to/app.ipa"
+      ]
+    }
+  }
+}
+```
+
+The launcher loads the IPA and waits with the emulator available for inspection. Call the generic `runEntry` tool when the application entry point should execute. Use `--run-entry` to run it during startup, `--backend` to select a backend, or `--rootfs` to choose the root filesystem directory.
+
+HTTP transport remains available when a URL endpoint is required:
+
+```bash
+java -jar unidbg-ios-headless/target/unidbg-ios-headless-0.9.10-SNAPSHOT.jar \
+  --transport http --mcp-port 9239 /path/to/app.ipa
+```
+
+Connect the HTTP server at `http://localhost:9239/sse`.
+
 ### Available MCP Tools
 
 **Status & Info**

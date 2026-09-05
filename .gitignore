@@ -11,6 +11,7 @@
 /unidbg-ios/unidbg-ios.iml
 /unidbg-ios/target/
 /unidbg-android/target/
+/unidbg-ios-headless/target/
 /backend/*/target/
 /backend/*/*.iml
 *.i64

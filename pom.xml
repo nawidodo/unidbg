@@ -9,6 +9,7 @@
         <module>unidbg-api</module>
         <module>unidbg-android</module>
         <module>unidbg-ios</module>
+        <module>unidbg-ios-headless</module>
         <module>backend/dynarmic</module>
         <module>backend/hypervisor</module>
         <module>backend/kvm</module>

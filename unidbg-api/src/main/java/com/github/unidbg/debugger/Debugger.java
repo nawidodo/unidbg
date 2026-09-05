@@ -5,6 +5,8 @@ import com.github.unidbg.Module;
 import com.github.unidbg.arm.backend.BlockHook;
 import com.github.unidbg.arm.backend.DebugHook;
 
+import java.io.PrintStream;
+
 import java.util.Map;
 
 public interface Debugger extends Breaker, DebugHook, BlockHook {
@@ -40,6 +42,23 @@ public interface Debugger extends Breaker, DebugHook, BlockHook {
     void disassembleBlock(Emulator<?> emulator, long address, boolean thumb);
 
     void addMcpTool(String name, String description, String... paramNames);
+    /**
+     * Start the HTTP MCP endpoint without entering the interactive debugger
+     * command loop first.
+     *
+     * @param port requested TCP port; non-positive values use the default
+     *             debugger port
+     * @return the port selected for the MCP endpoint
+     */
+    int startMcpServer(int port);
+    /**
+     * Start the line-oriented MCP stdio endpoint. The supplied stream remains
+     * reserved for JSON-RPC responses; diagnostics use the process diagnostic
+     * stream selected by the caller.
+     *
+     * @param output MCP JSON-RPC output stream
+     */
+    void startMcpStdioServer(PrintStream output);
 
     boolean removeBreakPoint(long address);
 

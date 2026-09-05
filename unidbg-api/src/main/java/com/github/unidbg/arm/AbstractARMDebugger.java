@@ -1342,13 +1342,74 @@ public abstract class AbstractARMDebugger implements Debugger {
         }
     }
 
-    private void startMcpServer(String line) {
+    @Override
+    public int startMcpServer(int requestedPort) {
         if (mcpServer != null) {
             int p = mcpServer.getPort();
             System.out.println("MCP server already running on port " + p);
             printMcpConfig(p, mcpServerIndex);
-            return;
+            return p;
         }
+        int port = requestedPort > 0 ? requestedPort : 9239;
+        int maxRetries = 10;
+        IOException lastFailure = null;
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                mcpServer = new McpServer(emulator, port);
+                for (PendingMcpTool tool : pendingMcpTools) {
+                    mcpServer.addCustomTool(tool.name, tool.description, tool.paramNames);
+                }
+                mcpServer.start();
+                pendingMcpTools.clear();
+                scannerNeedsRefresh = true;
+                mcpServer.setDebugIdle(true);
+                mcpServerIndex = i;
+                System.out.println("MCP server started on port " + port);
+                printMcpConfig(port, i);
+                return port;
+            } catch (IOException e) {
+                lastFailure = e;
+                if (mcpServer != null) {
+                    mcpServer.stop();
+                    mcpServer = null;
+                }
+                if (i < maxRetries - 1) {
+                    System.out.println("Port " + port + " is in use, trying " + (port + 1) + "...");
+                    port++;
+                }
+            }
+        }
+        throw new IllegalStateException(
+                "Failed to start MCP server on ports " + requestedPort + "-" + (port - 1),
+                lastFailure
+        );
+    }
+    @Override
+    public void startMcpStdioServer(PrintStream output) {
+        if (mcpServer != null) {
+            throw new IllegalStateException("MCP server already running");
+        }
+        try {
+            mcpServer = new McpServer(emulator, 0);
+            for (PendingMcpTool tool : pendingMcpTools) {
+                mcpServer.addCustomTool(tool.name, tool.description, tool.paramNames);
+            }
+            mcpServer.startStdio(output);
+            pendingMcpTools.clear();
+            scannerNeedsRefresh = true;
+            mcpServer.setDebugIdle(true);
+            System.out.println("MCP stdio server started");
+        } catch (IOException e) {
+            if (mcpServer != null) {
+                mcpServer.stop();
+                mcpServer = null;
+            }
+            throw new IllegalStateException("Failed to start MCP stdio server", e);
+        }
+    }
+
+
+    private void startMcpServer(String line) {
         int port = 9239;
         String portStr = line.substring(3).trim();
         if (!portStr.isEmpty()) {
@@ -1357,30 +1418,10 @@ public abstract class AbstractARMDebugger implements Debugger {
             } catch (NumberFormatException ignored) {
             }
         }
-        int maxRetries = 10;
-        for (int i = 0; i < maxRetries; i++) {
-            try {
-                mcpServer = new McpServer(emulator, port);
-                for (PendingMcpTool tool : pendingMcpTools) {
-                    mcpServer.addCustomTool(tool.name, tool.description, tool.paramNames);
-                }
-                pendingMcpTools.clear();
-                mcpServer.start();
-                scannerNeedsRefresh = true;
-                mcpServer.setDebugIdle(true);
-                mcpServerIndex = i;
-                System.out.println("MCP server started on port " + port);
-                printMcpConfig(port, i);
-                return;
-            } catch (IOException e) {
-                mcpServer = null;
-                if (i < maxRetries - 1) {
-                    System.out.println("Port " + port + " is in use, trying " + (port + 1) + "...");
-                    port++;
-                } else {
-                    System.err.println("Failed to start MCP server: " + e.getMessage());
-                }
-            }
+        try {
+            startMcpServer(port);
+        } catch (IllegalStateException e) {
+            System.err.println("Failed to start MCP server: " + e.getMessage());
         }
     }
 

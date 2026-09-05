@@ -10,6 +10,10 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
@@ -67,6 +71,32 @@ public class McpServer {
         httpServer.createContext("/sse", this::handleSse);
         httpServer.createContext("/message", this::handleMessage);
         httpServer.start();
+    }
+
+    /**
+     * Start a line-oriented MCP server on stdin/stdout. The debugger command
+     * loop consumes the private pipe while MCP requests consume the original
+     * stdin stream, so the two protocols do not compete for input.
+     */
+    public void startStdio(PrintStream output) throws IOException {
+        if (output == null) {
+            throw new NullPointerException("output");
+        }
+        commandPipe = new PipedOutputStream();
+        PipedInputStream pipedIn = new PipedInputStream(commandPipe, 4096);
+
+        final InputStream input = System.in;
+        originalIn = input;
+        System.setIn(pipedIn);
+
+        ThreadFactory daemonFactory = r -> {
+            Thread t = new Thread(r);
+            t.setDaemon(true);
+            t.setName("mcp-stdio");
+            return t;
+        };
+        executor = Executors.newCachedThreadPool(daemonFactory);
+        executor.submit(() -> serveStdio(input, output));
     }
 
     public void stop() {
@@ -196,6 +226,64 @@ public class McpServer {
         for (McpSession session : sessions.values()) {
             session.sendNotification(notification);
         }
+    }
+
+    private void serveStdio(InputStream input, PrintStream output) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.trim().isEmpty()) {
+                    continue;
+                }
+                JSONObject request;
+                try {
+                    request = JSON.parseObject(line);
+                } catch (Exception e) {
+                    writeStdioResponse(output, errorResponse(null, -32700, "Invalid JSON: " + e.getMessage()));
+                    continue;
+                }
+                if (request == null) {
+                    writeStdioResponse(output, errorResponse(null, -32600, "Empty JSON request"));
+                    continue;
+                }
+                String method = request.getString("method");
+                if (method != null && method.startsWith("notifications/")) {
+                    continue;
+                }
+                JSONObject response = buildJsonRpcResponse(
+                        request.get("id"),
+                        method,
+                        request.getJSONObject("params")
+                );
+                writeStdioResponse(output, response);
+                if ("shutdown".equals(method)) {
+                    injectCommand("q");
+                    return;
+                }
+            }
+        } catch (IOException e) {
+            log.debug("[MCP] stdio input closed: {}", e.getMessage());
+        } finally {
+            injectCommand("q");
+        }
+    }
+
+    private static void writeStdioResponse(PrintStream output, JSONObject response) {
+        synchronized (output) {
+            output.println(response.toJSONString());
+            output.flush();
+        }
+    }
+
+    private static JSONObject errorResponse(Object id, int code, String message) {
+        JSONObject response = new JSONObject();
+        response.put("jsonrpc", "2.0");
+        response.put("id", id);
+        JSONObject error = new JSONObject();
+        error.put("code", code);
+        error.put("message", message);
+        response.put("error", error);
+        return response;
     }
 
     private void handleSse(HttpExchange exchange) throws IOException {
@@ -364,6 +452,9 @@ public class McpServer {
             return handleToolsCall(params);
         }
         if ("ping".equals(method)) {
+            return new JSONObject();
+        }
+        if ("shutdown".equals(method)) {
             return new JSONObject();
         }
         throw new RuntimeException("Unknown method: " + method);
