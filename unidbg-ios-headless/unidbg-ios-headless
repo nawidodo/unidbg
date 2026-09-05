@@ -1,0 +1,38 @@
+#!/bin/sh
+# Global entrypoint for the reusable iOS headless MCP launcher.
+# Usage: unidbg-ios-headless [options] <ipa>
+# Defaults to HTTP transport so mcp.json only needs the server URL.
+set -e
+
+SCRIPT="$0"
+while [ -L "$SCRIPT" ]; do
+  LINK="$(readlink "$SCRIPT")"
+  case "$LINK" in
+    /*) SCRIPT="$LINK" ;;
+    *) SCRIPT="$(dirname "$SCRIPT")/$LINK" ;;
+  esac
+done
+REPO="$(cd "$(dirname "$SCRIPT")/.." && pwd)"
+
+JAR="$(ls -t "$REPO"/unidbg-ios-headless/target/unidbg-ios-headless-*.jar 2>/dev/null | head -1)"
+
+if [ -z "$JAR" ]; then
+  echo "unidbg-ios-headless JAR not found." >&2
+  echo "Run:" >&2
+  echo "  cd $REPO" >&2
+  echo "  ./mvnw -pl unidbg-ios-headless -am package -DskipTests" >&2
+  exit 1
+fi
+
+HAS_TRANSPORT=0
+for arg in "$@"; do
+  case "$arg" in
+    --transport|--transport=*) HAS_TRANSPORT=1; break ;;
+  esac
+done
+
+if [ "$HAS_TRANSPORT" -eq 0 ]; then
+  set -- --transport http "$@"
+fi
+
+exec java -jar "$JAR" "$@"

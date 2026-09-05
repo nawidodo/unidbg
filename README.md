@@ -68,6 +68,35 @@ When the debugger breaks, type `mcp` (or `mcp 9239` to specify port) in the cons
 
 ### Headless iOS IPA launcher
 
+#### Global wrapper (recommended)
+
+The repo ships `unidbg-ios-headless/unidbg-ios-headless`, which resolves the shaded jar and defaults to HTTP transport. Link it once for global access:
+
+```bash
+ln -sf ~/.local/src/unidbg/unidbg-ios-headless/unidbg-ios-headless ~/.local/bin/unidbg-ios-headless
+```
+
+Then start a server for any IPA — no recompile, no jar path:
+
+```bash
+unidbg-ios-headless /path/to/app.ipa
+```
+
+The MCP client config only needs the URL; the IPA location stays on the server command line:
+
+```json
+{
+  "mcpServers": {
+    "unidbg-ios": {
+      "url": "http://localhost:9239/sse"
+    }
+  }
+}
+```
+
+Pass `--transport stdio` through the wrapper only when the MCP client spawns the process itself. Extra options (`--backend`, `--rootfs`, `--run-entry`, `--break-offset`, `--mcp-port`) pass through unchanged.
+
+
 Build the shaded launcher once:
 
 ```bash

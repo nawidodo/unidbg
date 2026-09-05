@@ -49,7 +49,12 @@ public final class IpaMcpHeadless implements EmulatorConfigurator {
             protocolOutput = System.out;
             System.setOut(System.err);
         }
-        new IpaMcpHeadless().run(options, protocolOutput);
+        try {
+            new IpaMcpHeadless().run(options, protocolOutput);
+        } catch (IllegalArgumentException e) {
+            System.err.println("Error: " + e.getMessage());
+            System.exit(2);
+        }
     }
 
     private void run(Options options, PrintStream protocolOutput) throws Exception {
