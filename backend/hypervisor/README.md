@@ -16,12 +16,18 @@ ARM64 emulator backend using the macOS Hypervisor.framework. Allows you to emula
 
 ## Sign the Java Binary
 
-The Hypervisor.framework requires a special entitlement. Sign the `java` binary before running:
+The Hypervisor.framework requires a special entitlement. Use macOS `codesign` to ad-hoc sign the `java` binary before running:
 
 ```bash
 cd backend/hypervisor/assets
-sudo ./ldid -M -Shypervisor.entitlements "$JAVA_HOME"/bin/java
+sudo codesign --force --sign - \
+  --entitlements hypervisor.entitlements \
+  "$JAVA_HOME/bin/java"
+codesign --verify --verbose "$JAVA_HOME/bin/java"
+codesign -d --entitlements - "$JAVA_HOME/bin/java"
 ```
+
+The bundled `ldid` produces an entitlement blob that macOS ignores for this Java binary, so use the native `codesign` command above.
 
 ## Build
 
