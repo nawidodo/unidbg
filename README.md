@@ -96,6 +96,24 @@ The MCP client config only needs the URL; the IPA location stays on the server c
 
 Pass `--transport stdio` through the wrapper only when the MCP client spawns the process itself. Extra options (`--backend`, `--rootfs`, `--run-entry`, `--break-offset`, `--mcp-port`) pass through unchanged.
 
+For stdio-spawned clients, keep the IPA out of the client config: export it in the shell that launches the agent and let the wrapper pick it up.
+
+```bash
+export UNIDBG_IPA=/path/to/app.ipa
+```
+
+```json
+{
+  "mcpServers": {
+    "unidbg-ios": {
+      "type": "stdio",
+      "command": "/Users/mac/.local/bin/unidbg-ios-headless",
+      "args": ["--transport", "stdio"]
+    }
+  }
+}
+```
+
 
 Build the shaded launcher once:
 
